@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC  
+"-//Apache Software Foundation//DTD Struts Configuration 2.3//EN"  
+"http://struts.apache.org/dtds/struts-2.3.dtd">  
+<struts>  
+	<!-- struts2的action必须放在一个指定的包空间下定义 
+	该包使用默认的命名空间，默认的命名空间总是""-->
+    <package name="default" extends="struts-default" namespace="/">  
+      
+    </package> 
+    <!-- default和user，配置my包时指定了该包的命名空间为/user
+    该包下所有的Action处理的URL应该是“命名空间/Action名”。如上名为UserAction_*的Action，它处理的URL为：
+http://localhost:8080/userlogin_struts2/user/UserAction_*.action
+     -->
+    <package name="user" extends="default" namespace="/user">  
+        <action name="UserAction_*" class="com.action.UserAction" method="{1}">  
+            <result name="success">/success.jsp</result>  
+            <result name="error">/error.jsp</result>  
+        </action>  
+    </package>   
+    <!-- 将一个配置文件分解成多个配置文件  模块化的 
+    <include file="struts/struts-user.xml"></include>  -->
+</struts>  

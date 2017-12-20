@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd  
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd  
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd  
+        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd">
+	<!-- 导入资源文件 -->
+	<context:property-placeholder location="classpath:db.properties" />
+
+	<!-- 配置 C3P0 数据源 -->
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+		<property name="user" value="${jdbc.user}"></property>
+		<property name="password" value="${jdbc.pwd}"></property>
+		<property name="driverClass" value="${jdbc.driver}"></property>
+		<property name="jdbcUrl" value="${jdbc.jdbcurl}"></property>
+		<property name="initialPoolSize" value="${jdbc.initPoolSize}"></property>
+		<property name="maxPoolSize" value="${jdbc.maxPoolSize}"></property>
+	</bean>
+
+	<!-- 配置 SessionFactory -->
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+		<property name="dataSource" ref="dataSource"></property>
+		<!-- <property name="configLocation" value="classpath:hibernate.cfg.xml"></property> -->
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">
+					org.hibernate.dialect.MySQLDialect
+				</prop>
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="hibernate.format_sql">false</prop>
+				<prop key="hibernate.hbm2ddl.auto">update</prop>
+			</props>
+		</property>
+
+		<property name="annotatedClasses">
+			<list>
+				<value>com.pojo.Student</value>
+				<value>com.pojo.User</value>
+			</list>
+		</property>
+	</bean>
+
+	<!-- 配置 Spring 的声明式事务 -->
+	<!-- 1. 配置 hibernate 的事务管理器 -->
+	<bean id="transactionManager"
+		class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory"></property>
+	</bean>
+
+	<!-- 定义spring的事务拦截器TransactionInterceptor -->
+	<bean id="transactionInterceptor"
+		class="org.springframework.transaction.interceptor.TransactionInterceptor">
+		<!-- 依赖注入事务管理器 -->
+		<property name="transactionManager" ref="transactionManager" />
+		<!-- 定义需要进行事务拦截的方法及所采用的事务控制类型 -->
+		<property name="transactionAttributes">
+			<props>
+				<!-- 定义加入事务的方法 -->
+				<!--指定了 "PROPAGATION_REQUIRED"，表示在当前的事务中执行操作，如果事务不存在就建立一个新的 -->
+				<!-- PROPAGATION_MANDATORY: 方法必须在一个现存的事务中进行，否则丢出异常 PROPAGATION_NESTED: 
+					在一个嵌入的事务中进行，如果不是，则同PROPAGATION_REQUIRED PROPAGATION_NEVER: 指出不应在事务中进行，如果有就丢出异常 
+					PROPAGATION_NOT_SUPPORTED: 指出不应在事务中进行，如果有就暂停现存的事务 PROPAGATION_REQUIRED: 在当前的事务中进行，如果没有就建立一个新的事务 
+					PROPAGATION_REQUIRES_NEW: 建立一个新的事务，如果现存一个事务就暂停它 PROPAGATION_SUPPORTS: 支持现在的事务，如果没有就以非事务的方式执行 -->
+				<!-- 如果使用-Exception,意思是对所有的异常异常都回滚 -->
+				<prop key="add*">PROPAGATION_REQUIRED,-Exception</prop>
+				<prop key="drop*">PROPAGATION_REQUIRED,-Exception</prop>
+				<prop key="update*">PROPAGATION_REQUIRED,-Exception</prop>
+				<prop key="*">PROPAGATION_REQUIRED,readOnly</prop>
+			</props>
+		</property>
+	</bean>
+
+
+	<!-- 2. 配置事务属性 -->
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="get*" read-only="true" />
+			<tx:method name="lastNameIsValid" read-only="true" />
+			<tx:method name="*" />
+		</tx:attributes>
+	</tx:advice>
+
+	<!-- 3. 配置事务切入点, 再把事务属性和事务切入点关联起来 -->
+	<aop:config>
+		<aop:pointcut expression="execution(* com.service.*.*(..))"
+			id="txPointcut" />
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="txPointcut" />
+	</aop:config>
+
+	<!-- 开启自动扫描指定包上类的注解 -->
+	<context:component-scan base-package="com" />
+
+
+	<!-- User -->
+	<bean id="userDao" class="com.dao.impl.UserDaoImpl">
+		<property name="sessionFactory" ref="sessionFactory"></property>
+	</bean>
+	<bean id="userService" class="com.service.impl.UserServiceImpl">
+		<property name="userDao" ref="userDao"></property>
+	</bean>
+	<bean id="userAction" class="com.action.UserAction">
+		<property name="userService" ref="userService"></property>
+	</bean> 
+</beans>  
